@@ -335,11 +335,24 @@ export async function logIn(
     )
 
   if (!profile) {
-    await signOut(auth)
+    const recoveredProfile: UserProfile = {
+      uid: credential.user.uid,
+      name: cleanEmail.split('@')[0],
+      email: cleanEmail,
+      role: 'student',
+      enrolledCourseIds: [],
+      createdAt: now(),
+    }
 
-    throw new Error(
-      'Your authentication account exists, but your Smart Attendance profile is missing.'
+    await put<UserProfile & { id: string }>(
+      'users',
+      {
+        ...recoveredProfile,
+        id: recoveredProfile.uid,
+      }
     )
+
+    return recoveredProfile
   }
 
   return profile
