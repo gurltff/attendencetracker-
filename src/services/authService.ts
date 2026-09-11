@@ -18,6 +18,10 @@ export const LOCAL_USERS_KEY = 'sat_local_users'
 export const DEMO_MODE_KEY = 'sat_demo_mode'
 const PENDING_PROFILE_KEY = 'sat_pending_profile'
 let creatingFirebaseAccount = false
+const verificationActionSettings = {
+  url: 'https://gurltff.github.io/attendencetracker-/',
+  handleCodeInApp: false,
+}
 
 function now() {
   return Date.now()
@@ -47,6 +51,28 @@ function clearPendingProfile(uid: string) {
   localStorage.removeItem(
     `${PENDING_PROFILE_KEY}_${uid}`
   )
+}
+
+async function materializePendingProfile(uid: string) {
+  const existing = await getById<UserProfile>(
+    'users',
+    uid
+  )
+
+  if (existing) return
+
+  const pending = getPendingProfile(uid)
+
+  if (!pending) return
+
+  await put<UserProfile & { id: string }>(
+    'users',
+    {
+      ...pending,
+      id: pending.uid,
+    }
+  )
+  clearPendingProfile(uid)
 }
 
 function getLocalUsers(): Record<
@@ -287,7 +313,8 @@ export async function signUp(
     savePendingProfile(profile)
 
     await sendEmailVerification(
-      credential.user
+      credential.user,
+      verificationActionSettings
     )
   } catch (error) {
     clearPendingProfile(profile.uid)
@@ -295,7 +322,6 @@ export async function signUp(
     throw error
   } finally {
     creatingFirebaseAccount = false
-    await signOut(auth)
   }
 
   const verificationError = new Error(
@@ -361,9 +387,13 @@ export async function logIn(
 
   if (!credential.user.emailVerified) {
     try {
-      await sendEmailVerification(credential.user)
-    } finally {
+      await sendEmailVerification(
+        credential.user,
+        verificationActionSettings
+      )
+    } catch (error) {
       await signOut(auth)
+      throw error
     }
     const verificationError = new Error(
       'Your email is not verified. A fresh verification link was sent. Open it within 10 minutes, then log in again.'
@@ -373,30 +403,20 @@ export async function logIn(
     throw verificationError
   }
 
-  let profile =
-    await getById<UserProfile>(
-      'users',
-      credential.user.uid
-    )
+  await materializePendingProfile(
+    credential.user.uid
+  )
+
+  const profile = await getById<UserProfile>(
+    'users',
+    credential.user.uid
+  )
 
   if (!profile) {
-    profile = getPendingProfile(credential.user.uid)
-
-    if (profile) {
-      await put<UserProfile & { id: string }>(
-        'users',
-        {
-          ...profile,
-          id: profile.uid,
-        }
-      )
-      clearPendingProfile(profile.uid)
-    } else {
-      await signOut(auth)
-      throw new Error(
-        'Your account is missing an attendance profile. Please contact an administrator.'
-      )
-    }
+    await signOut(auth)
+    throw new Error(
+      'Your account is missing an attendance profile. Please contact an administrator.'
+    )
   }
 
   return profile
@@ -435,10 +455,12 @@ export async function resendVerificationEmail(
     }
 
     await sendEmailVerification(
-      credential.user
+      credential.user,
+      verificationActionSettings
     )
-  } finally {
+  } catch (error) {
     await signOut(auth)
+    throw error
   }
 }
 
@@ -568,11 +590,42 @@ export function watchAuthState(
   }
 
   const firebaseAuth = auth
+  let refreshInFlight = false
+
+  const processFirebaseUser = async (
+    firebaseUser: FirebaseUser | null
+  ) => {
+    if (refreshInFlight) return
+    refreshInFlight = true
+
+    try {
+      if (!firebaseUser) {
+        callback(null)
+        return
+      }
+
+      await firebaseUser.reload()
+
+      if (!firebaseUser.emailVerified) {
+        callback(null)
+        return
+      }
+
+      await materializePendingProfile(
+        firebaseUser.uid
+      )
+      callback(firebaseUser.uid)
+    } catch {
+      callback(null)
+    } finally {
+      refreshInFlight = false
+    }
+  }
 
   const unsubscribe =
     onAuthStateChanged(
       firebaseAuth,
-      async (firebaseUser: FirebaseUser | null) => {
+      (firebaseUser: FirebaseUser | null) => {
         if (isDemoMode()) {
           callback(
             getLocalCurrentUid()
@@ -580,27 +633,21 @@ export function watchAuthState(
           return
         }
 
-        if (!firebaseUser) {
-          callback(null)
-          return
-        }
-
-        if (!firebaseUser.emailVerified) {
-          if (creatingFirebaseAccount) {
-            callback(null)
-            return
-          }
-
-          callback(null)
-          return
-        }
-
-        callback(firebaseUser.uid)
+        void processFirebaseUser(firebaseUser)
       }
     )
 
+  const refreshTimer = window.setInterval(() => {
+    if (!isDemoMode()) {
+      void processFirebaseUser(
+        firebaseAuth.currentUser
+      )
+    }
+  }, 2000)
+
   return () => {
     unsubscribe()
+    window.clearInterval(refreshTimer)
 
     window.removeEventListener(
       'sat-auth-changed',
