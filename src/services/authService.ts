@@ -18,10 +18,6 @@ export const LOCAL_USERS_KEY = 'sat_local_users'
 export const DEMO_MODE_KEY = 'sat_demo_mode'
 const PENDING_PROFILE_KEY = 'sat_pending_profile'
 let creatingFirebaseAccount = false
-const verificationActionSettings = {
-  url: 'https://gurltff.github.io/attendencetracker-/',
-  handleCodeInApp: false,
-}
 
 function now() {
   return Date.now()
@@ -312,10 +308,7 @@ export async function signUp(
   try {
     savePendingProfile(profile)
 
-    await sendEmailVerification(
-      credential.user,
-      verificationActionSettings
-    )
+    await sendEmailVerification(credential.user)
   } catch (error) {
     clearPendingProfile(profile.uid)
     await deleteUser(credential.user)
@@ -387,10 +380,7 @@ export async function logIn(
 
   if (!credential.user.emailVerified) {
     try {
-      await sendEmailVerification(
-        credential.user,
-        verificationActionSettings
-      )
+      await sendEmailVerification(credential.user)
     } catch (error) {
       await signOut(auth)
       throw error
@@ -454,10 +444,7 @@ export async function resendVerificationEmail(
       )
     }
 
-    await sendEmailVerification(
-      credential.user,
-      verificationActionSettings
-    )
+    await sendEmailVerification(credential.user)
   } catch (error) {
     await signOut(auth)
     throw error
