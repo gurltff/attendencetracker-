@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import {
   logIn,
   logInDemo,
+  resendVerificationEmail,
   resetPassword,
   signUp,
 } from '../services/authService'
@@ -90,6 +91,9 @@ export default function AuthPage() {
   const [demoStatus, setDemoStatus] =
     useState('')
 
+  const [verificationSent, setVerificationSent] =
+    useState(false)
+
   /*
    * Automatically redirect authenticated users
    * to the correct dashboard.
@@ -152,6 +156,7 @@ export default function AuthPage() {
   ) {
     setMode(next)
     setResetMessage('')
+    setVerificationSent(false)
 
     if (next === 'login') {
       setName('')
@@ -325,6 +330,7 @@ export default function AuthPage() {
     if (busy) return
 
     setResetMessage('')
+    setVerificationSent(false)
     setBusy(true)
 
     try {
@@ -490,7 +496,8 @@ export default function AuthPage() {
         'auth/email-not-verified'
       ) {
         message =
-          'Your email was not verified, so the account was deleted. Please sign up again with an email address you can open.'
+          'Your email is not verified. A fresh verification link was sent. Check your inbox, then log in again.'
+        setVerificationSent(true)
       } else if (
         error?.code ===
         'auth/too-many-requests'
@@ -501,6 +508,30 @@ export default function AuthPage() {
 
       push(
         message,
+        'error'
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleResendVerification() {
+    setBusy(true)
+
+    try {
+      await resendVerificationEmail(
+        email,
+        password
+      )
+      setVerificationSent(true)
+      push(
+        'A fresh verification link was sent. Check your inbox.',
+        'success'
+      )
+    } catch (error: any) {
+      push(
+        error?.message ??
+          'Could not resend the verification email.',
         'error'
       )
     } finally {
@@ -786,6 +817,17 @@ export default function AuthPage() {
               >
                 {resetMessage}
               </div>
+            )}
+
+            {verificationSent && mode === 'login' && (
+              <button
+                type="button"
+                className="text-sm font-semibold underline"
+                disabled={busy}
+                onClick={handleResendVerification}
+              >
+                Resend verification email
+              </button>
             )}
 
             {mode === 'signup' && (

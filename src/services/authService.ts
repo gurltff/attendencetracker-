@@ -349,14 +349,13 @@ export async function logIn(
     )
 
   if (!credential.user.emailVerified) {
-    clearPendingProfile(credential.user.uid)
     try {
-      await deleteUser(credential.user)
-    } catch {
+      await sendEmailVerification(credential.user)
+    } finally {
       await signOut(auth)
     }
     const verificationError = new Error(
-      'Your email is not verified. The account was deleted. Please sign up again with an email address you can open.'
+      'Your email is not verified. A fresh verification link was sent. Open it within 10 minutes, then log in again.'
     ) as Error & { code: string }
     verificationError.code =
       'auth/email-not-verified'
@@ -390,6 +389,46 @@ export async function logIn(
   }
 
   return profile
+}
+
+export async function resendVerificationEmail(
+  email: string,
+  password: string
+): Promise<void> {
+  const cleanEmail = email.trim().toLowerCase()
+
+  if (!cleanEmail || !password) {
+    throw new Error(
+      'Enter your email and password first.'
+    )
+  }
+
+  if (!auth) {
+    throw new Error(
+      'Firebase authentication is not configured.'
+    )
+  }
+
+  const credential =
+    await signInWithEmailAndPassword(
+      auth,
+      cleanEmail,
+      password
+    )
+
+  try {
+    if (credential.user.emailVerified) {
+      throw new Error(
+        'This email is already verified. You can log in.'
+      )
+    }
+
+    await sendEmailVerification(
+      credential.user
+    )
+  } finally {
+    await signOut(auth)
+  }
 }
 
 /*
