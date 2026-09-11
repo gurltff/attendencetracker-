@@ -22,6 +22,21 @@ function lsWrite<T>(col: string, items: T[]) {
   localStorage.setItem(lsKey(col), JSON.stringify(items))
 }
 
+function withoutUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => withoutUndefined(item)) as T
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).filter(([, item]) => item !== undefined)
+        .map(([key, item]) => [key, withoutUndefined(item)])
+    ) as T
+  }
+
+  return value
+}
+
 export function seedIfEmpty<T extends { id: string }>(col: string, seed: T[]) {
   if (isFirebaseConfigured && !isDemoMode()) return
   const existing = lsRead<T>(col)
@@ -56,7 +71,7 @@ export async function getById<T>(col: string, id: string): Promise<T | null> {
 
 export async function create<T extends { id?: string }>(col: string, data: T): Promise<string> {
   if (isFirebaseConfigured && db && !isDemoMode()) {
-    const ref = await addDoc(collection(db, col), data)
+    const ref = await addDoc(collection(db, col), withoutUndefined(data))
     return ref.id
   }
   const all = lsRead<any>(col)
@@ -72,7 +87,7 @@ export async function update<T extends object>(
   data: Partial<T>
 ): Promise<void> {
   if (isFirebaseConfigured && db && !isDemoMode()) {
-    await updateDoc(doc(db, col, id), data as any)
+    await updateDoc(doc(db, col, id), withoutUndefined(data) as any)
     return
   }
   const all = lsRead<any>(col)
@@ -85,7 +100,7 @@ export async function update<T extends object>(
 
 export async function put<T extends { id: string }>(col: string, item: T): Promise<void> {
   if (isFirebaseConfigured && db && !isDemoMode()) {
-    await setDoc(doc(db, col, item.id), item)
+    await setDoc(doc(db, col, item.id), withoutUndefined(item))
     return
   }
   const all = lsRead<any>(col)
