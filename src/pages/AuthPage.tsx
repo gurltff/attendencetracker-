@@ -122,8 +122,13 @@ export default function AuthPage() {
       'announcements'
     )
       .then((all) => {
+        const source =
+          all.length > 0
+            ? all
+            : mockAnnouncements
+
         setAnnouncements(
-          all
+          source
             .filter(isAnnouncementLive)
             .sort(
               (a, b) =>
@@ -132,7 +137,12 @@ export default function AuthPage() {
             )
         )
       })
-      .catch(console.error)
+      .catch((error) => {
+        console.error(error)
+        setAnnouncements(
+          mockAnnouncements.filter(isAnnouncementLive)
+        )
+      })
 
     setDemoReady(hasDemoData())
   }, [])
