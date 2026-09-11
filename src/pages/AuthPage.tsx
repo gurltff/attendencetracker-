@@ -465,6 +465,12 @@ export default function AuthPage() {
           'Please enter a valid email address.'
       } else if (
         error?.code ===
+        'auth/email-already-in-use'
+      ) {
+        message =
+          'This email already has an account. Please log in instead or reset your password.'
+      } else if (
+        error?.code ===
         'auth/too-many-requests'
       ) {
         message =
