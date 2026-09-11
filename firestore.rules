@@ -63,6 +63,18 @@ service cloud.firestore {
           request.auth.uid == uid
           && request.resource.data.role
              == resource.data.role
+          && (
+            (
+              resource.data.role == 'student'
+              && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['year'])
+            )
+            || (
+              resource.data.role == 'teacher'
+              && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['assignedCourseIds'])
+            )
+          )
         )
         ||
         (
@@ -71,6 +83,13 @@ service cloud.firestore {
              in ['student', 'cr']
           && request.resource.data.role
              in ['student', 'cr']
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly([
+              'role',
+              'assignedCourseIds',
+              'enrolledCourseIds',
+              'year'
+            ])
         )
       );
 
@@ -124,7 +143,12 @@ service cloud.firestore {
           resource.data.studentId
             == request.auth.uid
 
-          || myRole() == 'teacher'
+          || (
+            myRole() == 'teacher'
+            && teacherOwnsCourse(
+              resource.data.courseKey
+            )
+          )
 
           || (
             myRole() == 'cr'

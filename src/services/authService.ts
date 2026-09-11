@@ -1,5 +1,6 @@
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   onAuthStateChanged,
   sendEmailVerification,
   sendPasswordResetEmail,
@@ -15,9 +16,36 @@ import type { Role, UserProfile } from '../types'
 export const LOCAL_AUTH_KEY = 'sat_local_auth_uid'
 export const LOCAL_USERS_KEY = 'sat_local_users'
 export const DEMO_MODE_KEY = 'sat_demo_mode'
+const PENDING_PROFILE_KEY = 'sat_pending_profile'
 
 function now() {
   return Date.now()
+}
+
+function savePendingProfile(profile: UserProfile) {
+  localStorage.setItem(
+    `${PENDING_PROFILE_KEY}_${profile.uid}`,
+    JSON.stringify(profile)
+  )
+}
+
+function getPendingProfile(uid: string) {
+  try {
+    const raw = localStorage.getItem(
+      `${PENDING_PROFILE_KEY}_${uid}`
+    )
+    return raw
+      ? (JSON.parse(raw) as UserProfile)
+      : null
+  } catch {
+    return null
+  }
+}
+
+function clearPendingProfile(uid: string) {
+  localStorage.removeItem(
+    `${PENDING_PROFILE_KEY}_${uid}`
+  )
 }
 
 function getLocalUsers(): Record<
@@ -246,17 +274,15 @@ export async function signUp(
   }
 
   try {
-    await put<UserProfile & { id: string }>(
-      'users',
-      {
-        ...profile,
-        id: profile.uid,
-      }
-    )
+    savePendingProfile(profile)
 
     await sendEmailVerification(
       credential.user
     )
+  } catch (error) {
+    clearPendingProfile(profile.uid)
+    await deleteUser(credential.user)
+    throw error
   } finally {
     await signOut(auth)
   }
@@ -323,26 +349,44 @@ export async function logIn(
     )
 
   if (!credential.user.emailVerified) {
-    await signOut(auth)
+    clearPendingProfile(credential.user.uid)
+    try {
+      await deleteUser(credential.user)
+    } catch {
+      await signOut(auth)
+    }
     const verificationError = new Error(
-      'Please verify your email address before logging in.'
+      'Your email is not verified. The account was deleted. Please sign up again with an email address you can open.'
     ) as Error & { code: string }
     verificationError.code =
       'auth/email-not-verified'
     throw verificationError
   }
 
-  const profile =
+  let profile =
     await getById<UserProfile>(
       'users',
       credential.user.uid
     )
 
   if (!profile) {
-    await signOut(auth)
-    throw new Error(
-      'Your account is missing an attendance profile. Please contact an administrator.'
-    )
+    profile = getPendingProfile(credential.user.uid)
+
+    if (profile) {
+      await put<UserProfile & { id: string }>(
+        'users',
+        {
+          ...profile,
+          id: profile.uid,
+        }
+      )
+      clearPendingProfile(profile.uid)
+    } else {
+      await signOut(auth)
+      throw new Error(
+        'Your account is missing an attendance profile. Please contact an administrator.'
+      )
+    }
   }
 
   return profile
@@ -473,10 +517,12 @@ export function watchAuthState(
       )
   }
 
+  const firebaseAuth = auth
+
   const unsubscribe =
     onAuthStateChanged(
-      auth,
-      (firebaseUser: FirebaseUser | null) => {
+      firebaseAuth,
+      async (firebaseUser: FirebaseUser | null) => {
         if (isDemoMode()) {
           callback(
             getLocalCurrentUid()
@@ -484,9 +530,28 @@ export function watchAuthState(
           return
         }
 
-        callback(
-          firebaseUser?.uid ?? null
-        )
+        if (!firebaseUser) {
+          callback(null)
+          return
+        }
+
+        if (!firebaseUser.emailVerified) {
+          if (getPendingProfile(firebaseUser.uid)) {
+            callback(null)
+            return
+          }
+
+          clearPendingProfile(firebaseUser.uid)
+          try {
+            await deleteUser(firebaseUser)
+          } catch {
+            await signOut(firebaseAuth)
+          }
+          callback(null)
+          return
+        }
+
+        callback(firebaseUser.uid)
       }
     )
 

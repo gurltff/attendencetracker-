@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { useAuth } from '../context/AuthContext'
-import { getAll, put } from '../services/store'
+import { getAll, getWhere, put } from '../services/store'
 import { isDemoMode, notifyLocalAuthChanged, syncLocalUserProfile } from '../services/authService'
 import { useToast } from '../components/Shared'
 import {
@@ -70,10 +70,20 @@ export default function TeacherClassOverview() {
     setLoading(true)
 
     try {
-      const [allUsers, allRecords] = await Promise.all([
+      const [allUsers, recordsByCourse] = await Promise.all([
         getAll<UserProfile>('users'),
-        getAll<AttendanceRecord>('attendanceRecords'),
+        Promise.all(
+          (user.assignedCourseIds ?? []).map((courseKey) =>
+            getWhere<AttendanceRecord>(
+              'attendanceRecords',
+              'courseKey',
+              courseKey
+            )
+          )
+        ),
       ])
+
+      const allRecords = recordsByCourse.flat()
 
       setUsers(allUsers)
       setRecords(allRecords)

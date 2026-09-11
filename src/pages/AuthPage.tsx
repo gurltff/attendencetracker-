@@ -490,7 +490,7 @@ export default function AuthPage() {
         'auth/email-not-verified'
       ) {
         message =
-          'Please verify your email address before logging in.'
+          'Your email was not verified, so the account was deleted. Please sign up again with an email address you can open.'
       } else if (
         error?.code ===
         'auth/too-many-requests'

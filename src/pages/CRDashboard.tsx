@@ -121,7 +121,6 @@ export default function CRDashboard() {
       const [
         ownAttendance,
         allUsers,
-        allAttendance,
         ownTimetable,
         allAnnouncements,
       ] = await Promise.all([
@@ -132,10 +131,6 @@ export default function CRDashboard() {
         ),
 
         getAll<UserProfile>('users'),
-
-        getAll<AttendanceRecord>(
-          'attendanceRecords'
-        ),
 
         getWhere<TimetableEntry>(
           'timetableEntries',
@@ -170,6 +165,16 @@ export default function CRDashboard() {
           a.name.localeCompare(b.name)
         )
 
+      const recordsByStudent = await Promise.all(
+        classmates.map((student) =>
+          getWhere<AttendanceRecord>(
+            'attendanceRecords',
+            'studentId',
+            student.uid
+          )
+        )
+      )
+
       setClassUsers(classmates)
 
       setTimetable(
@@ -184,14 +189,8 @@ export default function CRDashboard() {
           .sort((a, b) => b.createdAt - a.createdAt)
       )
 
-      // allAttendance is intentionally loaded here for class attendance.
       setClassAttendanceRecords(
-        allAttendance.filter((record) =>
-          classmates.some(
-            (student) =>
-              student.uid === record.studentId
-          )
-        )
+        recordsByStudent.flat()
       )
     } catch (error) {
       console.error(error)
