@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 
 import {
+  AuthenticatedRoute,
   Navbar,
   ProtectedRoute,
   ToastProvider,
@@ -75,7 +76,11 @@ export default function App() {
           {/* TIMETABLE */}
           <Route
             path="/timetable"
-            element={<TimetablePage />}
+            element={
+              <AuthenticatedRoute>
+                <TimetablePage />
+              </AuthenticatedRoute>
+            }
           />
 
         </Routes>

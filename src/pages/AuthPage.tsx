@@ -481,6 +481,18 @@ export default function AuthPage() {
           'This email already has an account. Please log in instead or reset your password.'
       } else if (
         error?.code ===
+        'auth/email-verification-required'
+      ) {
+        message =
+          'Account created. Check your email and verify your address before logging in.'
+      } else if (
+        error?.code ===
+        'auth/email-not-verified'
+      ) {
+        message =
+          'Please verify your email address before logging in.'
+      } else if (
+        error?.code ===
         'auth/too-many-requests'
       ) {
         message =

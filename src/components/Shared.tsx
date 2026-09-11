@@ -139,6 +139,28 @@ export function ProtectedRoute({
   return <>{children}</>
 }
 
+export function AuthenticatedRoute({
+  children,
+}: {
+  children: ReactNode
+}) {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-ink-muted">
+        Loading…
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Navigate to="/" replace />
+  }
+
+  return <>{children}</>
+}
+
 /* =========================================================
    TOAST
    ========================================================= */

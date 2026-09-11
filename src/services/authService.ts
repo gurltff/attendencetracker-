@@ -1,6 +1,7 @@
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
@@ -164,7 +165,7 @@ export async function signUp(
     )
   }
 
-  if (!isFirebaseConfigured || isDemoMode()) {
+  if (isDemoMode()) {
     const users = getLocalUsers()
 
     if (
@@ -244,15 +245,28 @@ export async function signUp(
       : {}),
   }
 
-  await put<UserProfile & { id: string }>(
-    'users',
-    {
-      ...profile,
-      id: profile.uid,
-    }
-  )
+  try {
+    await put<UserProfile & { id: string }>(
+      'users',
+      {
+        ...profile,
+        id: profile.uid,
+      }
+    )
 
-  return profile
+    await sendEmailVerification(
+      credential.user
+    )
+  } finally {
+    await signOut(auth)
+  }
+
+  const verificationError = new Error(
+    'Account created. Check your email and verify your address before logging in.'
+  ) as Error & { code: string }
+  verificationError.code =
+    'auth/email-verification-required'
+  throw verificationError
 }
 
 export async function logIn(
@@ -295,34 +309,6 @@ export async function logIn(
     return profile
   }
 
-  if (!isFirebaseConfigured) {
-    const entry = Object.values(
-      getLocalUsers()
-    ).find(
-      (u) =>
-        u.email.toLowerCase() === cleanEmail
-    )
-
-    if (
-      !entry ||
-      entry.password !== password
-    ) {
-      throw new Error(
-        'Invalid email or password.'
-      )
-    }
-
-    setLocalCurrentUid(entry.uid)
-    notifyLocalAuthChanged()
-
-    const {
-      password: _password,
-      ...profile
-    } = entry
-
-    return profile
-  }
-
   if (!auth) {
     throw new Error(
       'Firebase authentication is not configured.'
@@ -336,6 +322,16 @@ export async function logIn(
       password
     )
 
+  if (!credential.user.emailVerified) {
+    await signOut(auth)
+    const verificationError = new Error(
+      'Please verify your email address before logging in.'
+    ) as Error & { code: string }
+    verificationError.code =
+      'auth/email-not-verified'
+    throw verificationError
+  }
+
   const profile =
     await getById<UserProfile>(
       'users',
@@ -343,24 +339,10 @@ export async function logIn(
     )
 
   if (!profile) {
-    const recoveredProfile: UserProfile = {
-      uid: credential.user.uid,
-      name: cleanEmail.split('@')[0],
-      email: cleanEmail,
-      role: 'student',
-      enrolledCourseIds: [],
-      createdAt: now(),
-    }
-
-    await put<UserProfile & { id: string }>(
-      'users',
-      {
-        ...recoveredProfile,
-        id: recoveredProfile.uid,
-      }
+    await signOut(auth)
+    throw new Error(
+      'Your account is missing an attendance profile. Please contact an administrator.'
     )
-
-    return recoveredProfile
   }
 
   return profile
@@ -464,7 +446,11 @@ export function watchAuthState(
       isDemoMode() ||
       !isFirebaseConfigured
     ) {
-      callback(getLocalCurrentUid())
+      callback(
+        isDemoMode()
+          ? getLocalCurrentUid()
+          : null
+      )
     }
   }
 
@@ -474,7 +460,11 @@ export function watchAuthState(
   )
 
   if (!isFirebaseConfigured || !auth) {
-    callback(getLocalCurrentUid())
+    callback(
+      isDemoMode()
+        ? getLocalCurrentUid()
+        : null
+    )
 
     return () =>
       window.removeEventListener(

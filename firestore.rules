@@ -37,7 +37,11 @@ service cloud.firestore {
     // USERS
     match /users/{uid} {
 
-      allow read: if signedIn();
+      allow read: if signedIn()
+        && (
+          request.auth.uid == uid
+          || myRole() in ['teacher', 'cr']
+        );
 
       /*
        * Registration can create only student or teacher.
