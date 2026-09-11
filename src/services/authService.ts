@@ -187,12 +187,16 @@ export async function signUp(
       name: cleanName,
       email: cleanEmail,
       role,
-      enrolledCourseIds:
-        options?.enrolledCourseIds,
-      assignedCourseIds:
-        options?.assignedCourseIds,
-      year: options?.year,
       createdAt: now(),
+      ...(options?.enrolledCourseIds !== undefined
+        ? { enrolledCourseIds: options.enrolledCourseIds }
+        : {}),
+      ...(options?.assignedCourseIds !== undefined
+        ? { assignedCourseIds: options.assignedCourseIds }
+        : {}),
+      ...(options?.year !== undefined
+        ? { year: options.year }
+        : {}),
     }
 
     users[uid] = {
@@ -228,12 +232,16 @@ export async function signUp(
     name: cleanName,
     email: cleanEmail,
     role,
-    enrolledCourseIds:
-      options?.enrolledCourseIds,
-    assignedCourseIds:
-      options?.assignedCourseIds,
-    year: options?.year,
     createdAt: now(),
+    ...(options?.enrolledCourseIds !== undefined
+      ? { enrolledCourseIds: options.enrolledCourseIds }
+      : {}),
+    ...(options?.assignedCourseIds !== undefined
+      ? { assignedCourseIds: options.assignedCourseIds }
+      : {}),
+    ...(options?.year !== undefined
+      ? { year: options.year }
+      : {}),
   }
 
   await put<UserProfile & { id: string }>(
