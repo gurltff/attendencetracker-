@@ -17,6 +17,7 @@ export const LOCAL_AUTH_KEY = 'sat_local_auth_uid'
 export const LOCAL_USERS_KEY = 'sat_local_users'
 export const DEMO_MODE_KEY = 'sat_demo_mode'
 const PENDING_PROFILE_KEY = 'sat_pending_profile'
+let creatingFirebaseAccount = false
 
 function now() {
   return Date.now()
@@ -249,12 +250,21 @@ export async function signUp(
     )
   }
 
-  const credential =
-    await createUserWithEmailAndPassword(
-      auth,
-      cleanEmail,
-      password
-    )
+  creatingFirebaseAccount = true
+
+  let credential
+
+  try {
+    credential =
+      await createUserWithEmailAndPassword(
+        auth,
+        cleanEmail,
+        password
+      )
+  } catch (error) {
+    creatingFirebaseAccount = false
+    throw error
+  }
 
   const profile: UserProfile = {
     uid: credential.user.uid,
@@ -284,6 +294,7 @@ export async function signUp(
     await deleteUser(credential.user)
     throw error
   } finally {
+    creatingFirebaseAccount = false
     await signOut(auth)
   }
 
@@ -575,17 +586,11 @@ export function watchAuthState(
         }
 
         if (!firebaseUser.emailVerified) {
-          if (getPendingProfile(firebaseUser.uid)) {
+          if (creatingFirebaseAccount) {
             callback(null)
             return
           }
 
-          clearPendingProfile(firebaseUser.uid)
-          try {
-            await deleteUser(firebaseUser)
-          } catch {
-            await signOut(firebaseAuth)
-          }
           callback(null)
           return
         }
