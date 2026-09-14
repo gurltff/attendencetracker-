@@ -309,6 +309,16 @@ export async function signUp(
     savePendingProfile(profile)
 
     await sendEmailVerification(credential.user)
+
+    await put<UserProfile & { id: string }>(
+      'users',
+      {
+        ...profile,
+        id: profile.uid,
+      }
+    )
+
+    clearPendingProfile(profile.uid)
   } catch (error) {
     clearPendingProfile(profile.uid)
     await deleteUser(credential.user)
