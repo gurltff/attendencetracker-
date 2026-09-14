@@ -195,6 +195,12 @@ export default function MarkPresence({
   const [result, setResult] =
     useState<AttendanceRecord | null>(null)
 
+  const [openSubmittedPhoto, setOpenSubmittedPhoto] =
+    useState(false)
+
+  const [photoLoadError, setPhotoLoadError] =
+    useState(false)
+
 
   /* =======================================================
      START CAMERA
@@ -798,7 +804,13 @@ export default function MarkPresence({
                   rounded-2xl
                   border-2
                   border-ink
+                  cursor-zoom-in
                 "
+                onError={() => setPhotoLoadError(true)}
+                onClick={() => {
+                  setPhotoLoadError(false)
+                  setOpenSubmittedPhoto(true)
+                }}
               />
 
             </div>
@@ -812,6 +824,41 @@ export default function MarkPresence({
           >
             Mark another
           </button>
+
+          {openSubmittedPhoto && result.photoUrl && (
+            <div
+              className="fixed inset-0 z-40 flex items-center justify-center bg-ink/70 p-4"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Your attendance photo"
+              onClick={() => setOpenSubmittedPhoto(false)}
+            >
+              <div className="relative max-h-full max-w-3xl">
+                {photoLoadError ? (
+                  <p className="rounded-2xl bg-cream-soft px-6 py-5 font-semibold text-ink">
+                    This attendance photo could not be displayed.
+                  </p>
+                ) : (
+                  <img
+                    src={result.photoUrl}
+                    alt="Your attendance check-in"
+                    className="max-h-[85vh] max-w-full rounded-2xl border-2 border-cream-soft object-contain"
+                    onError={() => setPhotoLoadError(true)}
+                    onClick={(event) => event.stopPropagation()}
+                  />
+                )}
+
+                <button
+                  type="button"
+                  className="absolute right-2 top-2 rounded-full bg-ink px-3 py-1 text-lg font-bold text-cream-soft"
+                  aria-label="Close photo"
+                  onClick={() => setOpenSubmittedPhoto(false)}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
 
         </div>
       )}

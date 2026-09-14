@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { create, getAll, getWhere, put, remove } from '../services/store'
 import { useToast } from '../components/Shared'
 import MarkPresence from '../components/student/MarkPresence'
+import AutoTimetable from '../components/student/AutoTimetable'
 
 import {
   SCHEDULE_DATA,
@@ -60,7 +61,7 @@ function announcementCategory(
 }
 
 export default function CRDashboard() {
-  const { user } = useAuth()
+  const { user, setUser } = useAuth()
   const { push } = useToast()
 
   const [activeTab, setActiveTab] =
@@ -101,8 +102,43 @@ export default function CRDashboard() {
   const [savingAnnouncement, setSavingAnnouncement] =
     useState(false)
 
+  const [historyCourse, setHistoryCourse] =
+    useState('')
+
+  const [historyStatus, setHistoryStatus] =
+    useState('')
+
+  const [historyFrom, setHistoryFrom] =
+    useState('')
+
+  const [historyTo, setHistoryTo] =
+    useState('')
+
+  const [openPhoto, setOpenPhoto] =
+    useState<string | null>(null)
+
   const programName = user ? getProgram(user) : ''
   const year = user?.year ?? ''
+
+  const filteredHistory = attendance.filter((record) => {
+    if (historyCourse && record.courseId !== historyCourse) {
+      return false
+    }
+
+    if (historyStatus && record.status !== historyStatus) {
+      return false
+    }
+
+    if (historyFrom && record.date < historyFrom) {
+      return false
+    }
+
+    if (historyTo && record.date > historyTo) {
+      return false
+    }
+
+    return true
+  })
 
   const courses = useMemo(() => {
     if (!programName || !year) return []
@@ -688,45 +724,17 @@ export default function CRDashboard() {
                 </div>
               </div>
 
-              {timetable.length === 0 ? (
-                <div className="rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center">
-                  <div className="text-3xl">
-                    📅
-                  </div>
-
-                  <p className="font-bold mt-2">
-                    No timetable entries yet.
-                  </p>
-
-                  <p className="text-sm text-slate-500 mt-1">
-                    Your timetable will appear here when entries are created.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {timetable.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="rounded-2xl border-2 border-ink p-4 flex flex-wrap justify-between gap-3"
-                    >
-                      <div>
-                        <div className="font-black">
-                          {entry.courseName}
-                        </div>
-
-                        <div className="text-sm text-slate-500">
-                          {entry.day}
-                        </div>
-                      </div>
-
-                      <div className="font-bold">
-                        {entry.startTime} –{' '}
-                        {entry.endTime}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <AutoTimetable
+                programName={programName}
+                savedYear={year}
+                onYearChange={async (nextYear) => {
+                  if (user) {
+                    const updated = { ...user, year: nextYear }
+                    await put('users', { ...updated, id: user.uid })
+                    setUser(updated)
+                  }
+                }}
+              />
             </section>
           )}
 
@@ -774,9 +782,56 @@ export default function CRDashboard() {
                 </h2>
               </div>
 
-              {attendance.length === 0 ? (
+              <div className="grid gap-2 sm:grid-cols-4 mb-5">
+                <select
+                  className="input"
+                  value={historyCourse}
+                  onChange={(event) =>
+                    setHistoryCourse(event.target.value)
+                  }
+                >
+                  <option value="">All subjects</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.name}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  className="input"
+                  value={historyStatus}
+                  onChange={(event) =>
+                    setHistoryStatus(event.target.value)
+                  }
+                >
+                  <option value="">All statuses</option>
+                  <option value="present">Present</option>
+                  <option value="absent">Absent</option>
+                </select>
+
+                <input
+                  type="date"
+                  className="input"
+                  value={historyFrom}
+                  onChange={(event) =>
+                    setHistoryFrom(event.target.value)
+                  }
+                />
+
+                <input
+                  type="date"
+                  className="input"
+                  value={historyTo}
+                  onChange={(event) =>
+                    setHistoryTo(event.target.value)
+                  }
+                />
+              </div>
+
+              {filteredHistory.length === 0 ? (
                 <div className="rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center">
-                  No attendance records yet.
+                  No attendance records match these filters.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -787,11 +842,13 @@ export default function CRDashboard() {
                         <th>Subject</th>
                         <th>Status</th>
                         <th>Source</th>
+                        <th>Photo</th>
+                        <th>Location</th>
                       </tr>
                     </thead>
 
                     <tbody>
-                      {attendance.map((record) => (
+                      {filteredHistory.map((record) => (
                         <tr key={record.id}>
                           <td>
                             {record.date}
@@ -821,10 +878,47 @@ export default function CRDashboard() {
                               ? 'Self check-in'
                               : 'Teacher'}
                           </td>
+
+                          <td>
+                            {record.photoUrl ? (
+                              <button
+                                type="button"
+                                className="font-semibold underline"
+                                onClick={() =>
+                                  setOpenPhoto(record.photoUrl!)
+                                }
+                              >
+                                View photo
+                              </button>
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+
+                          <td className="capitalize">
+                            {record.locationStatus}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {openPhoto && (
+                <div
+                  className="fixed inset-0 z-40 flex items-center justify-center bg-ink/70 p-4"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Attendance photo"
+                  onClick={() => setOpenPhoto(null)}
+                >
+                  <img
+                    src={openPhoto}
+                    alt="My attendance check-in"
+                    className="max-h-[85vh] max-w-3xl rounded-2xl border-2 border-cream-soft object-contain"
+                    onClick={(event) => event.stopPropagation()}
+                  />
                 </div>
               )}
             </section>

@@ -7,6 +7,7 @@ export default function History({ records, courses }: { records: AttendanceRecor
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [openPhoto, setOpenPhoto] = useState<string | null>(null)
+  const [photoLoadError, setPhotoLoadError] = useState(false)
 
   const filtered = records.filter((r) => {
     if (courseFilter && r.courseId !== courseFilter) return false
@@ -51,7 +52,7 @@ export default function History({ records, courses }: { records: AttendanceRecor
                 <td className="pr-2">{r.source === 'student_self_checkin' ? 'Self check-in' : 'Teacher marked'}</td>
                 <td className="pr-2">
                   {r.photoUrl ? (
-                    <button className="font-semibold underline decoration-2 underline-offset-2" onClick={() => setOpenPhoto(r.photoUrl!)}>View</button>
+                    <button className="font-semibold underline decoration-2 underline-offset-2" onClick={() => { setPhotoLoadError(false); setOpenPhoto(r.photoUrl!) }}>View</button>
                   ) : '—'}
                 </td>
                 <td className="capitalize">{r.locationStatus}</td>
@@ -64,7 +65,13 @@ export default function History({ records, courses }: { records: AttendanceRecor
 
       {openPhoto && (
         <div className="fixed inset-0 bg-ink/60 flex items-center justify-center p-4 z-40" onClick={() => setOpenPhoto(null)}>
-          <img src={openPhoto} className="max-w-md rounded-2xl border-2 border-cream-soft" onClick={(e) => e.stopPropagation()} />
+          {photoLoadError ? (
+            <p className="rounded-2xl bg-cream-soft px-6 py-5 font-semibold text-ink">
+              This attendance photo could not be displayed.
+            </p>
+          ) : (
+            <img src={openPhoto} alt="Attendance check-in" className="max-h-[85vh] max-w-md rounded-2xl border-2 border-cream-soft object-contain" onError={() => setPhotoLoadError(true)} onClick={(e) => e.stopPropagation()} />
+          )}
         </div>
       )}
     </div>

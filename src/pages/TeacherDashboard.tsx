@@ -119,6 +119,16 @@ export default function TeacherDashboard() {
     setEditingSubjects,
   ] = useState(false)
 
+  const [
+    openPhoto,
+    setOpenPhoto,
+  ] = useState<string | null>(null)
+
+  const [
+    photoLoadError,
+    setPhotoLoadError,
+  ] = useState(false)
+
   const assignedCourseIds =
     user?.assignedCourseIds ??
     []
@@ -284,16 +294,50 @@ export default function TeacherDashboard() {
       return
     }
 
-    getWhere<AttendanceRecord>(
-      'attendanceRecords',
-      'courseKey',
-      courseKey,
+    let cancelled = false
+
+    const refreshRecords = () => {
+      getWhere<AttendanceRecord>(
+        'attendanceRecords',
+        'courseKey',
+        courseKey,
+      )
+        .then((nextRecords) => {
+          if (!cancelled) setRecords(nextRecords)
+        })
+        .catch((error) => {
+          if (cancelled) return
+          console.error(error)
+          setRecords([])
+        })
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshRecords()
+      }
+    }
+
+    refreshRecords()
+
+    const refreshTimer = window.setInterval(
+      refreshRecords,
+      15000,
     )
-      .then(setRecords)
-      .catch((error) => {
-        console.error(error)
-        setRecords([])
-      })
+
+    document.addEventListener(
+      'visibilitychange',
+      handleVisibilityChange,
+    )
+
+    return () => {
+      cancelled = true
+      window.clearInterval(refreshTimer)
+      document.removeEventListener(
+        'visibilitychange',
+        handleVisibilityChange,
+      )
+    }
   }, [
     courseKey,
   ])
@@ -944,16 +988,18 @@ export default function TeacherDashboard() {
 
                           <td className="pr-3">
                             {record.photoUrl ? (
-                              <a
-                                href={
-                                  record.photoUrl
-                                }
-                                target="_blank"
-                                rel="noreferrer"
+                              <button
+                                type="button"
                                 className="font-semibold underline"
+                                onClick={() => {
+                                  setPhotoLoadError(false)
+                                  setOpenPhoto(
+                                    record.photoUrl!,
+                                  )
+                                }}
                               >
                                 View photo
-                              </a>
+                              </button>
                             ) : (
                               '—'
                             )}
@@ -1019,6 +1065,41 @@ export default function TeacherDashboard() {
             }
           />
         )}
+
+      {openPhoto && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-ink/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Attendance photo"
+          onClick={() => setOpenPhoto(null)}
+        >
+          <div className="relative max-h-full max-w-3xl">
+            {photoLoadError ? (
+              <p className="rounded-2xl bg-cream-soft px-6 py-5 font-semibold text-ink">
+                This attendance photo could not be displayed.
+              </p>
+            ) : (
+              <img
+                src={openPhoto}
+                alt="Student attendance check-in"
+                className="max-h-[85vh] max-w-full rounded-2xl border-2 border-cream-soft object-contain"
+                onError={() => setPhotoLoadError(true)}
+                onClick={(event) => event.stopPropagation()}
+              />
+            )}
+
+            <button
+              type="button"
+              className="absolute right-2 top-2 rounded-full bg-ink px-3 py-1 text-lg font-bold text-cream-soft"
+              aria-label="Close photo"
+              onClick={() => setOpenPhoto(null)}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
