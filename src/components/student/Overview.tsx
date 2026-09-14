@@ -5,7 +5,7 @@ import {
   formatMarksLabel, isShortage, MAX_MARKS_BY_CATEGORY,
 } from '../../utils/attendanceMarks'
 
-const RING_TRACK = '#15130F1A'
+const RING_TRACK = '#1111111A'
 const TINTS = ['tint-butter', 'tint-blush', 'tint-sage', 'tint-sky']
 
 export default function Overview({ courses, records }: { courses: Course[]; records: AttendanceRecord[]; programName?: string; year?: string }) {
@@ -45,7 +45,7 @@ export default function Overview({ courses, records }: { courses: Course[]; reco
                       data={[{ value: r.percent }, { value: 100 - r.percent }]}
                       dataKey="value" innerRadius={20} outerRadius={30} startAngle={90} endAngle={-270}
                     >
-                      <Cell fill={r.percent < 67 ? '#C0392B' : '#15130F'} />
+                      <Cell fill={r.percent < 67 ? '#666666' : '#111111'} />
                       <Cell fill={RING_TRACK} />
                     </Pie>
                   </PieChart>
@@ -55,7 +55,7 @@ export default function Overview({ courses, records }: { courses: Course[]; reco
             <p className="text-3xl font-extrabold mt-2 text-ink">{r.percent.toFixed(0)}%</p>
             <div className="w-full bg-cream-soft/70 border border-ink/30 rounded-full h-2 mt-1 overflow-hidden">
               <div
-                className={`h-full rounded-full ${r.percent < 67 ? 'bg-[#C0392B]' : 'bg-ink'}`}
+                className={`h-full rounded-full ${r.percent < 67 ? 'bg-[#666666]' : 'bg-ink'}`}
                 style={{ width: `${Math.min(100, r.percent)}%` }}
               />
             </div>

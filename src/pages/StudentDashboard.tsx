@@ -64,7 +64,7 @@ export default function StudentDashboard() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`btn-outline whitespace-nowrap ${tab === t.key ? 'bg-brand-blue text-white' : ''}`}
+            className={`btn-outline whitespace-nowrap ${tab === t.key ? 'bg-ink text-cream-soft' : ''}`}
           >
             {t.label}
           </button>

@@ -226,7 +226,7 @@ body {
 
   border-radius: 9999px;
 
-  background: #f4d35e;
+  background: #ffffff;
   color: #15130f;
 
   font-size: 14px;
@@ -339,9 +339,9 @@ body {
 
   border-radius: 9999px;
 
-  border: 2px solid #f4d35e;
+  border: 2px solid #ffffff;
 
-  background: #f4d35e;
+  background: #ffffff;
 
   color: #15130f;
 
@@ -364,8 +364,8 @@ body {
   scale: 1 !important;
   translate: none !important;
 
-  background: #e9c84e;
-  border-color: #e9c84e;
+  background: #e5e5e5;
+  border-color: #e5e5e5;
 }
 
 
@@ -681,6 +681,87 @@ body {
 .dark .text-gray-500,
 .dark .text-gray-400 {
   color: #d7d0c2 !important;
+}
+
+.dark .text-ink\/80 {
+  color: rgba(247, 241, 227, 0.88) !important;
+}
+
+.dark .text-ink\/70 {
+  color: rgba(247, 241, 227, 0.78) !important;
+}
+
+.dark .text-ink\/60,
+.dark .text-ink-muted {
+  color: rgba(247, 241, 227, 0.68) !important;
+}
+
+.dark .text-ink\/50 {
+  color: rgba(247, 241, 227, 0.58) !important;
+}
+
+.dark .text-ink\/40 {
+  color: rgba(247, 241, 227, 0.5) !important;
+}
+
+/* Light tinted panels keep dark ink text in dark mode for contrast. */
+.dark .card-tint {
+  color: #15130f;
+}
+
+.dark .card-tint .text-ink\/80 {
+  color: rgba(21, 19, 15, 0.88) !important;
+}
+
+.dark .card-tint .text-ink\/70 {
+  color: rgba(21, 19, 15, 0.78) !important;
+}
+
+.dark .card-tint .text-ink\/60,
+.dark .card-tint .text-ink-muted {
+  color: rgba(21, 19, 15, 0.68) !important;
+}
+
+.dark .card-tint .text-ink\/50 {
+  color: rgba(21, 19, 15, 0.58) !important;
+}
+
+.dark .card-tint .text-ink\/40 {
+  color: rgba(21, 19, 15, 0.5) !important;
+}
+
+.dark .card-tint .btn-outline {
+  color: #15130f;
+  border-color: rgba(21, 19, 15, 0.7);
+}
+
+.dark .card-tint .btn-outline:hover {
+  color: #f7f1e3;
+  background-color: #15130f;
+}
+
+.dark .card-tint.tint-butter {
+  background-color: #e6e6e6 !important;
+}
+
+.dark .card-tint.tint-blush,
+.dark .card-tint.tint-pink {
+  background-color: #d8d8d8 !important;
+}
+
+.dark .card-tint.tint-sage {
+  background-color: #c8c8c8 !important;
+}
+
+.dark .card-tint.tint-sky {
+  background-color: #d0d0d0 !important;
+}
+
+.dark .bg-butter,
+.dark .bg-blush,
+.dark .bg-sage,
+.dark .bg-sky {
+  color: #15130f !important;
 }
 
 .dark .bg-white {

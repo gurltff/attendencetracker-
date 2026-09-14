@@ -575,7 +575,7 @@ export default function MarkPresence({
         <div className="space-y-3">
 
           {cam.error && (
-            <p className="text-sm font-semibold text-[#C0392B]">
+            <p className="text-sm font-semibold text-ink-muted">
               {cam.error}
             </p>
           )}

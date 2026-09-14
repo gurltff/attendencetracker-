@@ -6,38 +6,38 @@ export default {
     extend: {
       colors: {
         brand: {
-          blue: '#4f8ef7',
-          green: '#3ecf8e',
+          blue: '#111111',
+          green: '#333333',
         },
         cream: {
-          DEFAULT: '#F7F1E3',
-          soft: '#FBF7EE',
-          deep: '#EFE6D2',
+          DEFAULT: '#F5F5F5',
+          soft: '#FFFFFF',
+          deep: '#E8E8E8',
         },
         ink: {
-          DEFAULT: '#15130F',
-          soft: '#26241E',
-          muted: '#6B6659',
+          DEFAULT: '#111111',
+          soft: '#242424',
+          muted: '#5C5C5C',
         },
         butter: {
-          DEFAULT: '#F3DE94',
-          soft: '#F7E7AF',
-          deep: '#E8C763',
+          DEFAULT: '#E6E6E6',
+          soft: '#F0F0F0',
+          deep: '#CFCFCF',
         },
         blush: {
-          DEFAULT: '#F4C6D7',
-          soft: '#F8D9E4',
-          deep: '#EDA3BE',
+          DEFAULT: '#D8D8D8',
+          soft: '#E7E7E7',
+          deep: '#BDBDBD',
         },
         sage: {
-          DEFAULT: '#BFCE9C',
-          soft: '#D3DEBA',
-          deep: '#9FB273',
+          DEFAULT: '#C8C8C8',
+          soft: '#DDDDDD',
+          deep: '#AFAFAF',
         },
         sky: {
-          DEFAULT: '#BBD6E8',
-          soft: '#D3E5F0',
-          deep: '#8FB9D6',
+          DEFAULT: '#D0D0D0',
+          soft: '#E2E2E2',
+          deep: '#B5B5B5',
         },
       },
       borderRadius: {
